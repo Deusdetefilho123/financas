@@ -301,6 +301,16 @@ export function interpretar(texto, opcoes = {}) {
         r.cartao = c.nome; usa(k, k + partes.length); break;
       }
     }
+    // a voz às vezes separa o nome ("pic pay", "nu bank"): tenta juntar 2 ou 3 palavras
+    const junto = c.chave.replace(/\s+/g, '');
+    for (let n = 2; n <= 3 && !r.cartao; n++) {
+      for (let k = 0; k + n <= tk.length; k++) {
+        const grupo = tk.slice(k, k + n);
+        if (grupo.every((x) => !x.usado) && parecido(grupo.map((x) => x.t).join(''), junto)) {
+          r.cartao = c.nome; usa(k, k + n); break;
+        }
+      }
+    }
     if (r.cartao) break;
   }
 
