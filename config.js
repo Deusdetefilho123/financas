@@ -1,0 +1,16 @@
+// CONFIGURAÇÃO DA SINCRONIZAÇÃO (Firebase)
+//
+// Enquanto estiver "null", o app funciona só neste aparelho.
+// Para os dois celulares verem os mesmos dados, troque "null" pelo bloco
+// que o console do Firebase mostra (passo a passo no LEIAME.txt). Exemplo:
+//
+// window.FIREBASE_CONFIG = {
+//   apiKey: "AIza...",
+//   authDomain: "meu-projeto.firebaseapp.com",
+//   projectId: "meu-projeto",
+//   storageBucket: "meu-projeto.appspot.com",
+//   messagingSenderId: "1234567890",
+//   appId: "1:1234567890:web:abcdef"
+// };
+
+window.FIREBASE_CONFIG = null;

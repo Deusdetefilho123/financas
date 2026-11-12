@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Finanças da Casa</title>
+<meta name="theme-color" content="#0e6b57">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<style>
+:root{
+  --bg:#f4f1ea; --card:#fffdf8; --ink:#1d2a26; --muted:#66756f; --line:#e3ddd0;
+  --brand:#0e6b57; --brand-ink:#fff; --brand-soft:#dcebe5; --neg:#b93f2a; --pos:#17774a; --warn:#8a5a00; --warn-bg:#fbf0d2;
+}
+@media (prefers-color-scheme:dark){:root{
+  --bg:#101815; --card:#18231f; --ink:#e9efe9; --muted:#93a39b; --line:#2a3832;
+  --brand:#3fbf9c; --brand-ink:#06241c; --brand-soft:#1d3a32; --neg:#f08a73; --pos:#6fd39e; --warn:#f2cf7a; --warn-bg:#3a3118;
+}}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{background:var(--bg);color:var(--ink);font:16px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;-webkit-tap-highlight-color:transparent}
+button,input,select{font:inherit;color:inherit}
+button{cursor:pointer}
+[hidden]{display:none!important}
+#app{max-width:560px;margin:0 auto;min-height:100%;padding:0 16px calc(84px + env(safe-area-inset-bottom))}
+header{display:flex;align-items:center;justify-content:space-between;padding:18px 0 10px}
+header h1{font-size:20px;margin:0;letter-spacing:-.01em}
+#modo{font-size:12px;color:var(--muted);padding:4px 10px;border:1px solid var(--line);border-radius:99px;background:none}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px;margin:12px 0}
+.card h2{font-size:13px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin:0 0 10px}
+.aviso{background:var(--warn-bg);color:var(--warn);border-radius:12px;padding:10px 12px;font-size:14px;margin:10px 0}
+
+/* lançar */
+#lancar .linha{display:flex;gap:8px}
+#frase{flex:1;min-width:0;padding:14px;border-radius:12px;border:1px solid var(--line);background:var(--bg);font-size:17px}
+#frase:focus,input:focus,select:focus{outline:2px solid var(--brand);outline-offset:1px}
+.btn{border:0;border-radius:12px;padding:13px 16px;background:var(--brand);color:var(--brand-ink);font-weight:600}
+.btn.sec{background:var(--brand-soft);color:var(--ink)}
+.btn.perigo{background:none;color:var(--neg);border:1px solid var(--line)}
+.btn.bloco{width:100%;margin-top:8px}
+#mic{width:52px;padding:0;display:grid;place-items:center}
+#mic.ouvindo{background:var(--neg);color:#fff;animation:pulso 1s infinite}
+@keyframes pulso{50%{opacity:.6}}
+.dica{font-size:13px;color:var(--muted);margin:8px 2px 0}
+
+/* totais */
+.totais{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;text-align:center}
+.totais div{padding:4px 0}
+.totais small{display:block;color:var(--muted);font-size:12px}
+.totais b{font-size:16px;font-variant-numeric:tabular-nums;white-space:nowrap}
+.neg{color:var(--neg)} .pos{color:var(--pos)}
+
+/* mês */
+.mes{display:flex;align-items:center;justify-content:space-between;margin:6px 0}
+.mes b{display:inline-block;font-size:17px}
+.mes b::first-letter{text-transform:uppercase}
+.mes button{width:44px;height:44px;border-radius:12px;border:1px solid var(--line);background:var(--card);font-size:20px}
+
+/* lista */
+.dia{font-size:12px;color:var(--muted);margin:14px 2px 4px;display:flex;justify-content:space-between}
+.item{display:flex;align-items:center;gap:10px;width:100%;text-align:left;background:none;border:0;border-bottom:1px solid var(--line);padding:11px 2px}
+.item:last-child{border-bottom:0}
+.item .t{flex:1;min-width:0}
+.item .t b{display:block;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.item .t span{display:block;font-size:13px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.item .v{font-variant-numeric:tabular-nums;font-weight:600;white-space:nowrap}
+.vazio{color:var(--muted);text-align:center;padding:22px 0;font-size:15px}
+.filtros{display:flex;gap:6px;margin:8px 0}
+.filtros select{flex:1;min-width:0;padding:9px 6px;border-radius:10px;border:1px solid var(--line);background:var(--card);font-size:14px}
+
+/* resumo */
+.barra{display:block;width:100%;background:none;border:0;padding:7px 0;text-align:left}
+.barra .l{display:flex;justify-content:space-between;font-size:15px}
+.barra .l span:last-child{font-variant-numeric:tabular-nums;font-weight:600}
+.barra i{display:block;height:6px;border-radius:3px;background:var(--brand-soft);margin-top:5px;overflow:hidden}
+.barra i u{display:block;height:100%;background:var(--brand);border-radius:3px}
+
+/* navegação */
+nav{position:fixed;left:0;right:0;bottom:0;background:var(--card);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom);z-index:5}
+nav div{max-width:560px;margin:0 auto;display:grid;grid-template-columns:repeat(4,1fr)}
+nav button{background:none;border:0;padding:9px 0 8px;font-size:12px;color:var(--muted);display:grid;justify-items:center;gap:2px}
+nav button.on{color:var(--brand);font-weight:600}
+nav svg{width:24px;height:24px}
+
+/* folha de edição */
+dialog{border:0;padding:0;background:var(--card);color:var(--ink);width:100%;max-width:560px;max-height:92vh;margin:auto auto 0;border-radius:20px 20px 0 0;overflow:auto}
+dialog::backdrop{background:rgba(0,0,0,.45)}
+dialog form{padding:18px 16px calc(18px + env(safe-area-inset-bottom))}
+dialog h3{margin:0 0 4px;font-size:18px}
+.campo{margin-top:12px}
+.campo label,.rot{display:block;font-size:13px;color:var(--muted);margin-bottom:4px}
+.campo input,.campo select{width:100%;padding:12px;border-radius:10px;border:1px solid var(--line);background:var(--bg)}
+#fValor{font-size:26px;font-weight:700;font-variant-numeric:tabular-nums}
+.duas{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chips label{margin:0}
+.chips input{position:absolute;opacity:0;pointer-events:none}
+.chips span{display:block;padding:9px 13px;border-radius:99px;border:1px solid var(--line);background:var(--bg);font-size:15px;color:var(--ink)}
+.chips input:checked+span{background:var(--brand);color:var(--brand-ink);border-color:var(--brand)}
+.chips input:focus-visible+span{outline:2px solid var(--brand);outline-offset:2px}
+.acoes{display:flex;gap:8px;margin-top:18px}
+.acoes .btn{flex:1}
+
+#toast{position:fixed;left:50%;bottom:calc(92px + env(safe-area-inset-bottom));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 14px;border-radius:12px;font-size:14px;display:flex;gap:14px;align-items:center;max-width:92%;z-index:20}
+#toast button{background:none;border:0;color:inherit;font-weight:700;text-decoration:underline;padding:0}
+#login{max-width:400px;margin:0 auto;padding:60px 20px}
+#login h1{font-size:24px;margin:0 0 6px}
+#login p{color:var(--muted);margin:0 0 18px}
+.erro{color:var(--neg);font-size:14px;margin-top:10px;min-height:20px}
+</style>
+</head>
+<body>
+
+<section id="login" hidden>
+  <h1>Finanças da Casa</h1>
+  <p>Entre com o e-mail e a senha cadastrados no Firebase.</p>
+  <form id="formLogin">
+    <div class="campo"><label for="lEmail">E-mail</label><input id="lEmail" type="email" autocomplete="username" required></div>
+    <div class="campo"><label for="lSenha">Senha</label><input id="lSenha" type="password" autocomplete="current-password" required></div>
+    <button class="btn bloco" type="submit">Entrar</button>
+    <div class="erro" id="lErro" role="alert"></div>
+  </form>
+</section>
+
+<div id="app" hidden>
+  <header>
+    <h1>Finanças da Casa</h1>
+    <button id="modo" type="button"></button>
+  </header>
+
+  <section id="lancar" class="card">
+    <form id="formFrase">
+      <div class="linha">
+        <input id="frase" type="text" autocomplete="off" enterkeyhint="send" aria-label="Descreva o gasto ou a receita" placeholder="mercado 85,90 no débito">
+        <button class="btn sec" id="mic" type="button" aria-label="Falar" hidden>
+          <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>
+        </button>
+      </div>
+      <button class="btn bloco" type="submit">Lançar</button>
+    </form>
+    <p class="dica" id="dica">Escreva ou fale do seu jeito: "gastei trezentos no tênis em 3x no nubank", "recebi 2 mil de salário".</p>
+  </section>
+
+  <main id="tela"></main>
+</div>
+
+<nav id="nav" hidden><div>
+  <button data-tab="inicio" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 11l8-7 8 7v8a1 1 0 0 1-1 1h-4v-6h-6v6H5a1 1 0 0 1-1-1z"/></svg>Início</button>
+  <button data-tab="lista" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01"/></svg>Lançamentos</button>
+  <button data-tab="resumo" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 20V10M12 20V4M19 20v-7"/></svg>Resumo</button>
+  <button data-tab="ajustes" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h10M18 7h2M4 17h2M10 17h10"/><circle cx="16" cy="7" r="2"/><circle cx="8" cy="17" r="2"/></svg>Ajustes</button>
+</div></nav>
+
+<dialog id="folha">
+  <form id="formLanc" method="dialog">
+    <h3 id="fTitulo">Conferir lançamento</h3>
+    <div id="fAvisos"></div>
+    <div class="campo">
+      <div class="chips" role="radiogroup" aria-label="Tipo">
+        <label><input type="radio" name="tipo" value="gasto"><span>Gasto</span></label>
+        <label><input type="radio" name="tipo" value="receita"><span>Receita</span></label>
+      </div>
+    </div>
+    <div class="campo"><label for="fValor">Valor (R$)</label><input id="fValor" inputmode="decimal" autocomplete="off" required></div>
+    <div class="campo"><label for="fDesc">Descrição</label><input id="fDesc" autocomplete="off"></div>
+    <div class="duas">
+      <div class="campo"><label for="fCat">Categoria</label><select id="fCat"></select></div>
+      <div class="campo"><label for="fData">Data</label><input id="fData" type="date" required></div>
+    </div>
+    <div class="campo">
+      <span class="rot">Forma de pagamento</span>
+      <div class="chips" id="fFormas" role="radiogroup" aria-label="Forma de pagamento"></div>
+    </div>
+    <div class="duas">
+      <div class="campo" id="cCartao"><label for="fCartao">Cartão</label><select id="fCartao"></select></div>
+      <div class="campo" id="cParc"><label for="fParc">Parcelas</label><input id="fParc" type="number" inputmode="numeric" min="1" max="72" value="1"></div>
+    </div>
+    <div class="campo"><label for="fQuem">Quem</label><select id="fQuem"></select></div>
+    <div class="acoes">
+      <button class="btn sec" type="button" id="fCancelar">Cancelar</button>
+      <button class="btn" type="submit" id="fSalvar">Salvar</button>
+    </div>
+    <div id="fApagar" hidden>
+      <button class="btn perigo bloco" type="button" id="fApagar1">Apagar</button>
+      <button class="btn perigo bloco" type="button" id="fApagarTodas" hidden>Apagar todas as parcelas</button>
+    </div>
+  </form>
+</dialog>
+
+<div id="toast" role="status" hidden></div>
+
+<script src="config.js"></script>
+<script type="module" src="app.js"></script>
+</body>
+</html>

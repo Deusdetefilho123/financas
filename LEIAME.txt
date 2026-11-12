@@ -1,0 +1,78 @@
+FINANÇAS DA CASA - como colocar no ar (tudo gratuito)
+======================================================
+
+O app já funciona sem configurar nada, mas guardando os dados só no aparelho.
+Para os dois celulares verem os mesmos lançamentos, faça as partes 1 e 2.
+Os nomes dos menus do Firebase e do GitHub podem mudar um pouco com o tempo.
+
+
+PARTE 1 - Firebase (banco de dados compartilhado)
+-------------------------------------------------
+1. Entre em https://console.firebase.google.com com uma conta Google e crie
+   um projeto (pode desligar o Google Analytics). Fique no plano gratuito
+   (Spark); ele não pede cartão.
+
+2. No menu, abra Authentication > Começar > E-mail/senha > Ativar.
+   Depois, na aba Usuários, clique em "Adicionar usuário" duas vezes:
+   um e-mail e senha para você, outro para sua esposa.
+
+3. No menu, abra Firestore Database > Criar banco de dados.
+   Escolha "modo de produção" e o local southamerica-east1 (São Paulo).
+
+4. Na aba Regras do Firestore, apague o que estiver lá, cole o texto abaixo
+   trocando os dois e-mails pelos que você cadastrou, e clique em Publicar:
+
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /{document=**} {
+      allow read, write: if request.auth != null
+        && request.auth.token.email in ['voce@exemplo.com', 'esposa@exemplo.com'];
+    }
+  }
+}
+
+   Com essa regra, só esses dois e-mails conseguem ler ou gravar.
+
+5. Clique na engrenagem > Configurações do projeto > Seus apps > ícone "</>"
+   (Web). Dê um nome e registre. O console mostra um bloco "firebaseConfig".
+   Abra o arquivo config.js desta pasta no Bloco de Notas e troque a última
+   linha (window.FIREBASE_CONFIG = null;) por:
+
+   window.FIREBASE_CONFIG = { ...o bloco que o console mostrou... };
+
+   Esses dados não são senha: quem protege o banco é a regra do passo 4.
+
+
+PARTE 2 - Hospedagem (GitHub Pages)
+-----------------------------------
+1. Crie uma conta em https://github.com e um repositório público novo
+   (por exemplo "financas").
+2. No repositório: Add file > Upload files. Arraste TODOS os arquivos desta
+   pasta (não a pasta em si) e clique em Commit changes.
+3. Settings > Pages > em "Branch" escolha main e a pasta / (root) > Save.
+4. Em um ou dois minutos o endereço aparece nessa mesma tela, algo como
+   https://seuusuario.github.io/financas/
+
+
+PARTE 3 - Instalar nos celulares
+--------------------------------
+1. Abra o endereço no Chrome do Android.
+2. Menu (três pontinhos) > "Adicionar à tela inicial" / "Instalar app".
+3. Abra pelo ícone, entre com o e-mail e a senha e informe seu nome.
+4. Na primeira vez que tocar no microfone, permita o uso.
+
+
+DIA A DIA
+---------
+- Escreva ou fale: "mercado 85,90 no débito", "gastei trezentos no tênis
+  em 3x no nubank", "recebi 2 mil de salário", "gasolina 150 pix ontem".
+- O app mostra o que entendeu; corrija o que precisar e toque em Salvar.
+- Toque em qualquer lançamento para editar ou apagar.
+- Funciona sem internet; sincroniza quando a conexão volta.
+- Em Ajustes: seus cartões, exportar planilha (CSV) e cópia de segurança.
+
+PARA ATUALIZAR O APP
+--------------------
+Envie os arquivos novos para o mesmo repositório (Upload files substitui os
+antigos). Se mexer no sw.js, troque 'financas-v1' por 'financas-v2'.
