@@ -33,7 +33,7 @@ function somaMesData(ymd, n) {
 }
 const nomeMes = (mes) => new Date(mes + '-01T12:00:00').toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
 const nomeDia = (ymd) => new Date(ymd + 'T12:00:00').toLocaleDateString('pt-BR', { weekday: 'short', day: 'numeric', month: 'short' });
-const diaCurto = (ymd) => new Date(ymd + 'T12:00:00').toLocaleDateString('pt-BR', { day: 'numeric', month: 'short' });
+const fmtDM = (ymd) => ymd.slice(8, 10) + '/' + ymd.slice(5, 7); // 2026-12-10 -> 10/12
 
 // ---------- estado ----------
 const filtroVazio = () => ({ quem: '', forma: '', categoria: '', cartao: '', terceiro: '', loja: '' });
@@ -142,8 +142,11 @@ function vencDe(x) {
 // data em que a parcela vence: o próximo "dia do vencimento" a partir da data da parcela
 function dataVenc(x) {
   const v = vencDe(x);
-  if (!v) return x.data;
-  const [y, m, d] = x.data.split('-').map(Number);
+  return v ? vencData(x.data, v) : x.data;
+}
+const aPrazo = (x) => x.tipo !== 'receita' && (x.forma === 'crediario' || (x.forma === 'credito' && (x.cartao || x.terceiro)));
+function vencData(ymd, v) {
+  const [y, m, d] = ymd.split('-').map(Number);
   const mm = v >= d ? m : m + 1;
   const r = new Date(y, mm - 1, Math.min(v, new Date(y, mm, 0).getDate()));
   return `${r.getFullYear()}-${pad(r.getMonth() + 1)}-${pad(r.getDate())}`;
@@ -176,7 +179,7 @@ function htmlItem(x, comData) {
     x.quem, comData ? nomeDia(x.data) : ''].filter(Boolean).join(' · ');
   const parc = x.parcela ? ` (${x.parcela.n}/${x.parcela.total})` : '';
   return `<button class="item" type="button" data-id="${esc(x.id)}">
-    <div class="t"><b>${esc(x.descricao)}${parc}</b><span>${esc(meta)}</span></div>
+    <div class="t"><b>${esc(x.descricao)}${parc}</b><span>${esc(meta)}</span>${aPrazo(x) && !x.pago && vencDe(x) ? `<span class="prox">Vence ${fmtDM(dataVenc(x))}</span>` : ''}</div>
     <div class="v ${x.tipo === 'receita' ? 'pos' : 'neg'}">${x.tipo === 'receita' ? '+' : '−'} ${brl(x.valorCent)}</div></button>`;
 }
 // Em "Últimos lançamentos", uma compra parcelada aparece uma vez só, com a próxima parcela a vencer
@@ -184,7 +187,7 @@ function htmlCompraParcelada(x) {
   const parcelas = S.itens.filter((y) => y.parcela?.grupo === x.parcela.grupo).sort((a, b) => a.parcela.n - b.parcela.n);
   const prox = parcelas.find((y) => !y.pago);
   const meta = [rotCat[x.categoria] || 'Outros', rotFormaItem(x), !x.terceiro && x.forma !== 'crediario' ? x.cartao : '', x.quem].filter(Boolean).join(' · ');
-  const linha2 = prox ? `Próxima: ${prox.parcela.n}/${prox.parcela.total} · vence ${diaCurto(dataVenc(prox))}` : 'Todas as parcelas pagas';
+  const linha2 = prox ? `Próxima: ${prox.parcela.n}/${prox.parcela.total} em ${fmtDM(dataVenc(prox))}` : 'Todas as parcelas pagas';
   return `<button class="item" type="button" data-id="${esc((prox || x).id)}">
     <div class="t"><b>${esc(x.descricao)} (${x.parcela.total}x)</b><span>${esc(meta)}</span><span class="prox">${esc(linha2)}</span></div>
     <div class="v neg">− ${brl((prox || x).valorCent)}</div></button>`;
@@ -194,49 +197,138 @@ const htmlMes = () => `<div class="mes"><button type="button" data-mes="-1" aria
 // ---------- quadros: meus cartões, outras pessoas, lojas ----------
 const doCampo = (campo, nome) => S.itens.filter((x) => x.tipo !== 'receita'
   && (campo === 'cartao' ? x.forma === 'credito' && !x.terceiro && x.cartao === nome : x[campo] === nome));
+const porParcela = (a, b) => a.parcela.n - b.parcela.n;
+
+// próximo vencimento entre o que ainda não foi pago: data e valor que vence nesse dia
+function proximoVenc(dele) {
+  const abertos = dele.filter((x) => !x.pago);
+  if (!abertos.length) return null;
+  const data = abertos.map(dataVenc).sort()[0];
+  return { data, valor: soma(abertos.filter((x) => dataVenc(x) === data)) };
+}
+// uma linha por compra parcelada em aberto: "Sofá: 3 de 10 pagas · próxima 4/10 em 20/12"
+function linhasCompras(dele) {
+  const grupos = new Map();
+  dele.filter((x) => x.parcela).forEach((x) => { if (!grupos.has(x.parcela.grupo)) grupos.set(x.parcela.grupo, []); grupos.get(x.parcela.grupo).push(x); });
+  return [...grupos.values()].map((g) => {
+    const prox = g.sort(porParcela).find((x) => !x.pago);
+    return prox ? `${prox.descricao}: ${prox.parcela.n - 1} de ${prox.parcela.total} pagas · próxima ${prox.parcela.n}/${prox.parcela.total} em ${fmtDM(dataVenc(prox))}` : null;
+  }).filter(Boolean);
+}
+const botaoPagar = (campo, nome, mes, pend, acao) => `<button type="button" class="btn mini${pend ? '' : ' sec'}" data-pagar="${pend ? 1 : 0}" data-campo="${campo}" data-nome="${esc(nome)}" data-m="${mes}">${pend ? acao : 'Pago ✓'}</button>`;
 
 function htmlQuadro(titulo, campo, mes, linhas) {
   if (!linhas.length) return '';
   return `<div class="card"><h2>${titulo} · ${nomeMes(mes)}</h2>${linhas.map((l) => `<div class="deve-b"><div class="deve">
-    <button type="button" class="deve-t" data-ir="${campo}" data-valor="${esc(l.nome)}"><b>${esc(l.nome)}</b><span>${esc(l.sub)}</span></button>
-    <div class="deve-v"><b>${brl(l.total)}</b>${!l.total ? '<span>Nada neste mês</span>'
-      : `<button type="button" class="btn mini${l.pend ? '' : ' sec'}" data-pagar="${l.pend ? 1 : 0}" data-campo="${campo}" data-nome="${esc(l.nome)}" data-m="${mes}">${l.pend ? l.acao : 'Pago ✓'}</button>`}</div>
-    </div>${l.extra || ''}</div>`).join('')}</div>`;
+    <button type="button" class="deve-t" data-ir="${campo}" data-valor="${esc(l.nome)}"><b>${esc(l.nome)}</b>${l.subs.filter(Boolean).map((t) => `<span>${esc(t)}</span>`).join('')}</button>
+    <div class="deve-v"><b>${l.total ? brl(l.total) : '—'}</b>${l.botao || '<span>Nada neste mês</span>'}</div>
+    </div>${l.compras?.length ? `<div class="deve-c">${l.compras.map((t) => `<span>${esc(t)}</span>`).join('')}</div>` : ''}${l.extra || ''}</div>`).join('')}</div>`;
 }
-function htmlDevo(titulo, campo, cadastro, mes) {
-  const nomes = [...new Set([...cadastro.map((t) => t.nome), ...S.itens.map((x) => x[campo]).filter(Boolean)])];
-  return htmlQuadro(titulo, campo, mes, nomes.map((nome) => {
+function linhasDevo(campo, cadastro, mes, fora = []) {
+  const nomes = [...new Set([...cadastro.map((t) => t.nome), ...S.itens.map((x) => x[campo]).filter(Boolean)])].filter((n) => !fora.includes(n));
+  return nomes.map((nome) => {
     const dele = doCampo(campo, nome), noMes = dele.filter((x) => mesDe(x.data) === mes);
-    const venc = cadastro.find((t) => t.nome === nome)?.venc, resta = soma(dele.filter((x) => !x.pago));
-    return { nome, total: soma(noMes), pend: soma(noMes.filter((x) => !x.pago)), resta, acao: 'Marcar pago',
-      sub: `${venc ? `Vence dia ${venc} · ` : ''}Ainda devo ${brl(resta)} no total` };
-  }).filter((l) => l.total || l.resta));
+    const resta = soma(dele.filter((x) => !x.pago)), prox = proximoVenc(dele), total = soma(noMes), pend = soma(noMes.filter((x) => !x.pago));
+    return { nome, total, resta, compras: linhasCompras(dele), botao: total ? botaoPagar(campo, nome, mes, pend, 'Marcar pago') : '',
+      subs: [prox ? `Próximo vencimento: ${fmtDM(prox.data)} · ${brl(prox.valor)}` : 'Tudo pago', resta ? `Ainda devo ${brl(resta)} no total` : ''] };
+  }).filter((l) => l.total || l.resta);
+}
+// lojas com pagamento mensal opcional (ex.: planilha de corrida): só vira gasto no mês em que for marcado como pago
+function linhasMensais(mes) {
+  return S.lojas.filter((t) => t.parcelado === false).map((t) => {
+    const noMes = doCampo('loja', t.nome).filter((x) => mesDe(x.data) === mes);
+    const pago = noMes.length > 0 && noMes.every((x) => x.pago);
+    const [y, m] = mes.split('-').map(Number), dia = Math.min(t.venc || 1, new Date(y, m, 0).getDate());
+    return { nome: t.nome, total: noMes.length ? soma(noMes) : t.valor || 0,
+      subs: ['Pagamento mensal opcional', pago ? 'Pago neste mês' : t.venc ? `Vence ${pad(dia)}/${pad(m)}` : ''],
+      botao: `<button type="button" class="btn mini${pago ? ' sec' : ''}" data-mensal="${pago ? 0 : 1}" data-nome="${esc(t.nome)}" data-m="${mes}">${pago ? 'Pago ✓' : 'Marcar pago'}</button>` };
+  });
 }
 function htmlCartoes(mes) {
   const usados = S.itens.filter((x) => x.forma === 'credito' && !x.terceiro && x.cartao).map((x) => x.cartao);
   const nomes = [...new Set([...S.cartoes, ...usados])];
   return htmlQuadro('Meus cartões', 'cartao', mes, nomes.map((nome) => {
     const dele = doCampo('cartao', nome), noMes = dele.filter((x) => mesDe(x.data) === mes);
-    const { limite, venc } = infoCartao(nome), usado = soma(dele.filter((x) => !x.pago));
+    const { limite, venc } = infoCartao(nome), usado = soma(dele.filter((x) => !x.pago)), prox = proximoVenc(dele);
+    const total = soma(noMes), pend = soma(noMes.filter((x) => !x.pago));
     let extra = '';
     if (limite) {
       const livre = limite - usado, pct = Math.min(100, Math.round((usado / limite) * 100));
       extra = `<div class="lim${livre < 0 ? ' est' : ''}"><i><u style="width:${pct}%"></u></i>
         <span>Limite ${brl(limite)} · usado ${brl(usado)} · ${livre < 0 ? `<b class="neg">estourado em ${brl(-livre)}</b>` : `<b>disponível ${brl(livre)}</b>`}</span></div>`;
     }
-    return { nome, total: soma(noMes), pend: soma(noMes.filter((x) => !x.pago)), usado, limite, extra, acao: 'Marcar fatura paga',
-      sub: venc ? `Fatura do mês · vence dia ${venc}` : 'Fatura do mês' };
+    const quando = venc ? fmtDM(prox ? prox.data : vencData(hojeYmd(), venc)) : '';
+    return { nome, total, usado, limite, extra, botao: total ? botaoPagar('cartao', nome, mes, pend, 'Marcar fatura paga') : '',
+      subs: ['Fatura do mês', quando ? `Próximo vencimento: ${quando}` : ''] };
   }).filter((l) => l.total || l.usado || l.limite));
 }
-const htmlQuadros = (mes) => htmlCartoes(mes) + htmlDevo('Devo a outras pessoas', 'terceiro', S.terceiros, mes) + htmlDevo('Parcelas de lojas', 'loja', S.lojas, mes);
+const htmlQuadros = (mes) => {
+  const opcionais = S.lojas.filter((t) => t.parcelado === false).map((t) => t.nome);
+  return htmlCartoes(mes) + htmlQuadro('Devo a outras pessoas', 'terceiro', mes, linhasDevo('terceiro', S.terceiros, mes))
+    + htmlQuadro('Lojas e mensalidades', 'loja', mes, [...linhasDevo('loja', S.lojas.filter((t) => t.parcelado !== false), mes, opcionais), ...linhasMensais(mes)]);
+};
 
-function marcarPago(campo, nome, mes, pago) {
+// janela de confirmação / aviso (devolve true se a pessoa confirmou)
+function caixa(titulo, html, rotOk, comCancelar, validar) {
+  return new Promise((resolver) => {
+    const d = $('#caixa'); let ok = false;
+    $('#cxTitulo').textContent = titulo; $('#cxCorpo').innerHTML = html; $('#cxErro').textContent = '';
+    $('#cxSim').textContent = rotOk; $('#cxNao').hidden = !comCancelar;
+    $('#formCaixa').onsubmit = (e) => { e.preventDefault(); const er = validar?.(); if (er) { $('#cxErro').textContent = er; return; } ok = true; d.close(); };
+    $('#cxNao').onclick = () => d.close();
+    d.onclose = () => resolver(ok);
+    d.showModal();
+  });
+}
+const perguntar = (titulo, html, rotOk, validar) => caixa(titulo, html, rotOk, true, validar);
+const avisar = (titulo, linhas) => caixa(titulo, linhas.map((l) => `<p>${esc(l)}</p>`).join(''), 'OK', false);
+
+async function marcarPago(campo, nome, mes, pago) {
   const l = doCampo(campo, nome).filter((x) => mesDe(x.data) === mes && !!x.pago !== pago);
   if (!l.length) return;
+  const oQue = campo === 'cartao' ? `a fatura de ${nomeMes(mes)} do cartão ${nome}` : `as parcelas de ${nomeMes(mes)} de ${nome}`;
+  const ok = await perguntar(pago ? 'Marcar como pago?' : 'Desmarcar o pagamento?',
+    `<p>${pago ? (campo === 'cartao' ? 'Marcar como paga' : 'Marcar como pagas') : 'Voltar para "a pagar"'} ${esc(oQue)}, no valor de <b>${brl(soma(l))}</b>?</p>`, pago ? 'Marcar pago' : 'Desmarcar');
+  if (!ok) return;
   Dados.salvar(l.map((x) => ({ ...x, pago })));
-  const oQue = campo === 'cartao' ? `Fatura de ${nome}` : `Parcelas de ${nome}`;
-  toast(pago ? `${oQue} em ${nomeMes(mes)}: marcado como pago.` : `${oQue} em ${nomeMes(mes)}: voltou para "a pagar".`, 'Desfazer',
-    () => Dados.salvar(l.map((x) => ({ ...x, pago: !pago }))));
+  if (!pago) { toast('Pagamento desmarcado.'); return; }
+  // resumo do que foi quitado e do que vem a seguir
+  const quitados = new Set(l.map((x) => x.id)), linhas = [];
+  let avulsas = 0;
+  for (const x of l) {
+    if (!x.parcela) { if (campo === 'cartao') avulsas++; else linhas.push(`${x.descricao}: quitado.`); continue; }
+    const prox = S.itens.filter((y) => y.parcela?.grupo === x.parcela.grupo && y.parcela.n > x.parcela.n && !y.pago && !quitados.has(y.id)).sort(porParcela)[0];
+    linhas.push(`${x.descricao}: parcela ${x.parcela.n}/${x.parcela.total} quitada. `
+      + (prox ? `Próxima: ${prox.parcela.n}/${prox.parcela.total} em ${fmtDM(dataVenc(prox))}.` : 'Compra encerrada.'));
+  }
+  if (avulsas) linhas.push(`${avulsas} compra${avulsas > 1 ? 's' : ''} sem parcelamento: quitada${avulsas > 1 ? 's' : ''}.`);
+  const lim = campo === 'cartao' ? infoCartao(nome).limite : null;
+  if (lim) linhas.push(`Limite disponível agora: ${brl(lim - soma(doCampo('cartao', nome).filter((x) => !x.pago && !quitados.has(x.id))))}.`);
+  avisar('Pagamento registrado', linhas);
+}
+async function pagarMensal(nome, mes, pagar) {
+  const loja = S.lojas.find((t) => t.nome === nome) || {};
+  const noMes = doCampo('loja', nome).filter((x) => mesDe(x.data) === mes);
+  if (!pagar) {
+    const ok = await perguntar('Desmarcar o pagamento?', `<p>Remover o pagamento de <b>${esc(nome)}</b> em ${nomeMes(mes)} (${brl(soma(noMes))})? O gasto sai do mês.</p>`, 'Desmarcar');
+    if (!ok) return;
+    const mensais = noMes.filter((x) => x.mensal), outros = noMes.filter((x) => !x.mensal);
+    if (mensais.length) Dados.apagar(mensais.map((x) => x.id));
+    if (outros.length) Dados.salvar(outros.map((x) => ({ ...x, pago: false })));
+    toast('Pagamento desmarcado.'); return;
+  }
+  const ok = await perguntar('Marcar como pago?', `<p>Registrar o pagamento de <b>${esc(nome)}</b> em ${nomeMes(mes)}?</p>
+    <div class="campo"><label for="cxValor">Valor pago (R$)</label><input id="cxValor" inputmode="decimal" autocomplete="off" value="${noMes.length ? fmtNum(soma(noMes)) : loja.valor ? fmtNum(loja.valor) : ''}"></div>`,
+    'Marcar pago', () => (lerValor($('#cxValor').value) > 0 ? '' : 'Informe o valor pago.'));
+  if (!ok) return;
+  const valorCent = lerValor($('#cxValor').value);
+  if (noMes.length) { Dados.salvar(noMes.map((x, i) => ({ ...x, pago: true, valorCent: noMes.length === 1 ? valorCent : x.valorCent }))); }
+  else {
+    const [y, m] = mes.split('-').map(Number), dia = Math.min(loja.venc || 1, new Date(y, m, 0).getDate());
+    Dados.salvar([{ id: uid(), tipo: 'gasto', valorCent, descricao: nome, categoria: 'assinaturas', forma: 'crediario', cartao: null, terceiro: null,
+      loja: nome, pago: true, mensal: true, data: mes === mesDe(hojeYmd()) ? hojeYmd() : `${mes}-${pad(dia)}`, quem: S.nome, parcela: null, criadoEm: Date.now() }]);
+  }
+  toast(`Pagamento de ${nome} registrado: ${brl(valorCent)}.`);
 }
 
 function telaInicio() {
@@ -301,7 +393,9 @@ function htmlEditor(tipo, titulo, lista, comLimite, rotAdd, dica) {
   return `<div class="card"><h2>${titulo}</h2><div data-ed="${tipo}" class="${comLimite ? 'ed3' : 'ed2'}">
     ${linhas.length ? `<div class="ed-l ed-cab"><span>Nome</span>${comLimite ? '<span>Limite (R$)</span>' : ''}<span>Venc.</span><span></span></div>` : ''}
     ${linhas.map((l) => `<div class="ed-l"><input data-c="nome" aria-label="Nome" value="${esc(l.nome || '')}">${comLimite
-      ? `<input data-c="limite" inputmode="decimal" aria-label="Limite em reais" placeholder="sem limite" value="${l.limite ? fmtNum(l.limite) : ''}">` : ''}<input data-c="venc" inputmode="numeric" aria-label="Dia do vencimento" placeholder="dia" value="${l.venc || ''}"><button type="button" data-rm aria-label="Remover ${esc(l.nome || 'linha')}">×</button></div>`).join('')}
+      ? `<input data-c="limite" inputmode="decimal" aria-label="Limite em reais" placeholder="sem limite" value="${l.limite ? fmtNum(l.limite) : ''}">` : ''}<input data-c="venc" inputmode="numeric" aria-label="Dia do vencimento" placeholder="dia" value="${l.venc || ''}"><button type="button" data-rm aria-label="Remover ${esc(l.nome || 'linha')}">×</button>${tipo === 'lojas'
+      ? `<div class="ed-x"><label><input type="checkbox" data-c="parcelado"${l.parcelado !== false ? ' checked' : ''}> Parcelado</label>${l.parcelado === false
+        ? `<label>Valor mensal (R$) <input data-c="valor" inputmode="decimal" aria-label="Valor mensal em reais" value="${l.valor ? fmtNum(l.valor) : ''}"></label>` : ''}</div>` : ''}</div>`).join('')}
     </div><button class="btn sec bloco" type="button" data-add="${tipo}">${rotAdd}</button><p class="dica">${dica}</p></div>`;
 }
 function salvarEditor(tipo) {
@@ -309,10 +403,13 @@ function salvarEditor(tipo) {
   const linhas = [...document.querySelectorAll(`[data-ed="${tipo}"] .ed-l:not(.ed-cab)`)].map((l) => {
     const v = (c) => l.querySelector(`[data-c=${c}]`)?.value.trim() || '';
     const venc = parseInt(v('venc'), 10), lim = lerValor(v('limite'));
-    return { nome: v('nome'), limite: lim > 0 ? lim : null, venc: venc >= 1 && venc <= 31 ? venc : null };
+    const val = lerValor(v('valor'));
+    return { nome: v('nome'), limite: lim > 0 ? lim : null, venc: venc >= 1 && venc <= 31 ? venc : null,
+      parcelado: l.querySelector('[data-c=parcelado]')?.checked !== false, valor: val > 0 ? val : null };
   }).filter((l) => l.nome && !vistos.has(l.nome) && vistos.add(l.nome));
   S.edNovo[tipo] = 0;
   if (tipo === 'cartoes') Dados.salvarCfg({ cartoes: linhas.map((l) => l.nome), cartoesInfo: linhas });
+  else if (tipo === 'lojas') Dados.salvarCfg({ lojas: linhas.map(({ nome, venc, parcelado, valor }) => ({ nome, venc, parcelado, valor: parcelado ? null : valor })) });
   else Dados.salvarCfg({ [tipo]: linhas.map(({ nome, venc }) => ({ nome, venc })) });
 }
 
@@ -328,8 +425,8 @@ function telaAjustes() {
       'O limite e o dia do vencimento são opcionais. O limite volta a ficar disponível quando você marca a fatura como paga.')}
     ${htmlEditor('terceiros', 'Cartões de outras pessoas', S.terceiros, false, 'Adicionar pessoa',
       'Nas frases, diga "no cartão da mãe" ou "no cartão do pai".')}
-    ${htmlEditor('lojas', 'Lojas (carnê ou crediário)', S.lojas, false, 'Adicionar loja',
-      'Para compras parceladas direto com a loja. Nas frases, diga "no carnê da" e o nome da loja.')}
+    ${htmlEditor('lojas', 'Lojas e mensalidades', S.lojas, false, 'Adicionar loja ou mensalidade',
+      'Parcelado: compra com número certo de parcelas; diga "no carnê da" e o nome da loja. Sem marcar: pagamento mensal opcional, que só entra como gasto no mês em que você marcar como pago.')}
     <div class="card"><h2>Sincronização</h2>${sinc}</div>
     <div class="card"><h2>Seus dados</h2>
       <button class="btn sec bloco" type="button" id="aCsv">Exportar planilha (CSV)</button>
@@ -509,6 +606,8 @@ $('#tela').addEventListener('click', (e) => {
   if (mes) { S.mes = somaMes(S.mes, Number(mes.dataset.mes)); Dados.garantirPeriodo(S.mes); render(); return; }
   const pg = e.target.closest('[data-pagar]');
   if (pg) { marcarPago(pg.dataset.campo, pg.dataset.nome, pg.dataset.m, pg.dataset.pagar === '1'); return; }
+  const ms = e.target.closest('[data-mensal]');
+  if (ms) { pagarMensal(ms.dataset.nome, ms.dataset.m, ms.dataset.mensal === '1'); return; }
   const ir = e.target.closest('[data-ir]');
   if (ir) {
     S.filtro = filtroVazio();
@@ -539,6 +638,14 @@ $('#tela').addEventListener('click', (e) => {
 $('#tela').addEventListener('change', (e) => {
   const f = e.target.dataset?.filtro;
   if (f) { S.filtro[f] = e.target.value; render(); return; }
+  if (e.target.dataset?.c === 'parcelado') {
+    const cx = e.target, nome = cx.closest('.ed-l').querySelector('[data-c=nome]').value.trim() || 'este item';
+    perguntar('Confirmar mudança', cx.checked
+      ? `<p>Tratar <b>${esc(nome)}</b> como compra parcelada? As parcelas contam como dívida até serem pagas.</p>`
+      : `<p>Tratar <b>${esc(nome)}</b> como pagamento mensal opcional? Ele só entra como gasto nos meses em que você marcar como pago.</p>`, 'Confirmar')
+      .then((ok) => { if (!ok) { cx.checked = !cx.checked; return; } salvarEditor('lojas'); document.activeElement?.blur?.(); render(); toast('Salvo.'); });
+    return;
+  }
   const ed = e.target.closest('[data-ed]');
   if (ed) { salvarEditor(ed.dataset.ed); toast('Salvo.'); return; }
   if (e.target.id === 'aNome') { S.nome = e.target.value.trim() || S.nome; guarda.por('fin_nome', S.nome); toast('Nome salvo.'); }

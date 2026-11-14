@@ -133,6 +133,13 @@ dialog h3{margin:0 0 4px;font-size:18px}
 .ed-cab{font-size:12px;color:var(--muted);margin-bottom:2px}
 .ed-l input{width:100%;min-width:0;padding:10px 8px;border-radius:10px;border:1px solid var(--line);background:var(--bg)}
 .ed-l button{height:40px;border-radius:10px;border:1px solid var(--line);background:none;color:var(--neg);font-size:20px;line-height:1}
+.deve-c{padding:0 0 10px}
+.deve-c span{display:block;font-size:13px;color:var(--ink);padding:2px 0}
+.ed-x{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center;font-size:14px;padding:0 2px 8px;border-bottom:1px solid var(--line);margin-bottom:4px}
+.ed-x label{display:flex;align-items:center;gap:8px}
+.ed-x input[type=checkbox]{width:20px;height:20px;padding:0;accent-color:var(--brand)}
+.ed-x input[data-c=valor]{width:96px}
+#cxCorpo p{margin:8px 0;font-size:16px}
 #toast{position:fixed;left:50%;bottom:calc(92px + env(safe-area-inset-bottom));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 14px;border-radius:12px;font-size:14px;display:flex;gap:14px;align-items:center;max-width:92%;z-index:20}
 #toast button{background:none;border:0;color:inherit;font-weight:700;text-decoration:underline;padding:0}
 #login{max-width:400px;margin:0 auto;padding:60px 20px}
@@ -221,6 +228,18 @@ dialog h3{margin:0 0 4px;font-size:18px}
     <div id="fApagar" hidden>
       <button class="btn perigo bloco" type="button" id="fApagar1">Apagar</button>
       <button class="btn perigo bloco" type="button" id="fApagarTodas" hidden>Apagar todas as parcelas</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="caixa">
+  <form id="formCaixa" method="dialog">
+    <h3 id="cxTitulo"></h3>
+    <div id="cxCorpo"></div>
+    <div class="erro" id="cxErro" role="alert"></div>
+    <div class="acoes">
+      <button class="btn sec" type="button" id="cxNao">Cancelar</button>
+      <button class="btn" type="submit" id="cxSim">OK</button>
     </div>
   </form>
 </dialog>
