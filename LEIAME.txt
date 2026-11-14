@@ -70,9 +70,14 @@ DIA A DIA
 - O app mostra o que entendeu; corrija o que precisar e toque em Salvar.
 - Toque em qualquer lançamento para editar ou apagar.
 - Funciona sem internet; sincroniza quando a conexão volta.
+- Cartões de outras pessoas: cadastre em Ajustes ("Pai dia 10, Mãe dia 5")
+  e diga "no cartão da mãe". O quadro "Devo a outras pessoas" mostra o que
+  pagar a cada um no mês, com o botão "Marcar pago".
+- Compra que já está sendo paga: informe o total de parcelas e preencha
+  "Começar na parcela" (ex.: 4 de 10) para lançar só as que faltam.
 - Em Ajustes: seus cartões, exportar planilha (CSV) e cópia de segurança.
 
 PARA ATUALIZAR O APP
 --------------------
 Envie os arquivos novos para o mesmo repositório (Upload files substitui os
-antigos). Se mexer no sw.js, troque 'financas-v1' por 'financas-v2'.
+antigos). O config.js deste pacote já está preenchido com o seu projeto.

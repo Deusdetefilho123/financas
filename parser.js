@@ -187,7 +187,7 @@ export function interpretar(texto, opcoes = {}) {
   const original = String(texto || '').normalize('NFC');
   let s = semAcento(original);
   const avisos = [];
-  const r = { tipo: 'gasto', valorCent: null, descricao: '', categoria: 'outros', forma: null, cartao: null,
+  const r = { tipo: 'gasto', valorCent: null, descricao: '', categoria: 'outros', forma: null, cartao: null, terceiro: null,
     parcelas: 1, data: ymd(hoje), avisos };
 
   // tokens com a posição no texto original
@@ -293,6 +293,20 @@ export function interpretar(texto, opcoes = {}) {
     if (cand.length > 1) avisos.push('Havia mais de um número na frase. Confira o valor.');
   } else avisos.push('Não encontrei o valor. Preencha abaixo.');
 
+  // ---- cartão de outra pessoa: "no cartão da mãe", "cartão do meu pai" ----
+  const terceiros = (opcoes.terceiros || []).map((n) => ({ nome: n, chave: semAcento(n).trim() })).filter((c) => c.chave);
+  for (const c of terceiros) {
+    const partes = c.chave.split(/\s+/);
+    for (let k = 0; k + partes.length <= tk.length && !r.terceiro; k++) {
+      if (!partes.every((p, x) => !tk[k + x].usado && parecido(tk[k + x].t, p))) continue;
+      let ini = k;
+      while (ini > 0 && ['do', 'da', 'de', 'meu', 'minha', 'nosso', 'nossa'].includes(T(ini - 1))) ini--;
+      if (!['cartao', 'credito'].includes(T(ini - 1))) continue; // precisa dizer "cartão da/do ..."
+      r.terceiro = c.nome; r.forma = 'credito'; usa(ini - 1, k + partes.length);
+    }
+    if (r.terceiro) break;
+  }
+
   // ---- cartão ----
   for (const c of cartoes) {
     const partes = c.chave.split(/\s+/);
@@ -315,10 +329,10 @@ export function interpretar(texto, opcoes = {}) {
   }
 
   // ---- forma de pagamento ----
-  for (let k = 0; k < tk.length && !r.forma; k++) {
+  for (let k = 0; k < tk.length; k++) {
     if (tk[k].usado) continue;
     for (const [forma, lista] of Object.entries(FORMA_PALAVRAS)) {
-      if (lista.some((p) => parecido(tk[k].t, p))) { r.forma = forma; tk[k].usado = true; break; }
+      if (lista.some((p) => parecido(tk[k].t, p))) { if (!r.forma) r.forma = forma; tk[k].usado = true; break; }
     }
   }
   const temCartao = tk.some((x) => !x.usado && x.t === 'cartao');

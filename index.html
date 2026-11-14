@@ -102,6 +102,17 @@ dialog h3{margin:0 0 4px;font-size:18px}
 .acoes{display:flex;gap:8px;margin-top:18px}
 .acoes .btn{flex:1}
 
+.deve{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--line)}
+.deve:last-child{border-bottom:0}
+.deve-t{flex:1;min-width:0;background:none;border:0;text-align:left;padding:0}
+.deve-t b{display:block}
+.deve-t span,.deve-v span{display:block;font-size:13px;color:var(--muted)}
+.deve-v{text-align:right;display:grid;gap:5px;justify-items:end}
+.deve-v b{font-variant-numeric:tabular-nums}
+.btn.mini{padding:7px 12px;border-radius:99px;font-size:13px}
+.marca{display:flex;align-items:center;gap:10px;margin-top:14px;font-size:15px}
+.marca input{width:22px;height:22px;accent-color:var(--brand)}
+.cada{padding:12px 2px;font-weight:600;font-variant-numeric:tabular-nums}
 #toast{position:fixed;left:50%;bottom:calc(92px + env(safe-area-inset-bottom));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 14px;border-radius:12px;font-size:14px;display:flex;gap:14px;align-items:center;max-width:92%;z-index:20}
 #toast button{background:none;border:0;color:inherit;font-weight:700;text-decoration:underline;padding:0}
 #login{max-width:400px;margin:0 auto;padding:60px 20px}
@@ -176,6 +187,11 @@ dialog h3{margin:0 0 4px;font-size:18px}
       <div class="campo" id="cCartao"><label for="fCartao">Cartão</label><select id="fCartao"></select></div>
       <div class="campo" id="cParc"><label for="fParc">Parcelas</label><input id="fParc" type="number" inputmode="numeric" min="1" max="72" value="1"></div>
     </div>
+    <div class="duas" id="cParc2">
+      <div class="campo"><label for="fParcIni">Começar na parcela</label><input id="fParcIni" type="number" inputmode="numeric" min="1" max="72" value="1"></div>
+      <div class="campo"><span class="rot">Valor de cada parcela</span><div class="cada" id="fCada">—</div></div>
+    </div>
+    <label class="marca" id="cPago"><input type="checkbox" id="fPago"> Esta parcela já foi paga</label>
     <div class="campo"><label for="fQuem">Quem</label><select id="fQuem"></select></div>
     <div class="acoes">
       <button class="btn sec" type="button" id="fCancelar">Cancelar</button>
