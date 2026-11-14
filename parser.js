@@ -12,7 +12,7 @@ export const CATEGORIAS = [
 
 export const FORMAS = [
   ['credito', 'Crédito'], ['debito', 'Débito'], ['pix', 'Pix'],
-  ['especie', 'Dinheiro'], ['outro', 'Outro'],
+  ['especie', 'Dinheiro'], ['crediario', 'Carnê'], ['outro', 'Outro'],
 ];
 
 const PALAVRAS_CATEGORIA = {
@@ -187,7 +187,7 @@ export function interpretar(texto, opcoes = {}) {
   const original = String(texto || '').normalize('NFC');
   let s = semAcento(original);
   const avisos = [];
-  const r = { tipo: 'gasto', valorCent: null, descricao: '', categoria: 'outros', forma: null, cartao: null, terceiro: null,
+  const r = { tipo: 'gasto', valorCent: null, descricao: '', categoria: 'outros', forma: null, cartao: null, terceiro: null, loja: null,
     parcelas: 1, data: ymd(hoje), avisos };
 
   // tokens com a posição no texto original
@@ -327,6 +327,35 @@ export function interpretar(texto, opcoes = {}) {
     }
     if (r.cartao) break;
   }
+
+  // ---- carnê / crediário de loja: "no carnê da Magazine", "em 10x na Zenir" ----
+  // "carne" só vale como carnê se foi escrito com acento ou veio depois de "no/pelo/num" (para não confundir com carne de comer)
+  let temCarne = false;
+  for (let k = 0; k < tk.length; k++) {
+    if (tk[k].usado) continue;
+    const t = T(k);
+    const carne = t === 'carne' && (/ê/i.test(original.slice(tk[k].i, tk[k].f)) || ['no', 'pelo', 'num'].includes(T(k - 1)));
+    if (carne || ['crediario', 'crediaro', 'carnet'].includes(t)) { temCarne = true; tk[k].usado = true; }
+  }
+  if (!r.terceiro && !r.cartao) {
+    const lojas = (opcoes.lojas || []).map((n) => ({ nome: n, chave: semAcento(n).trim() })).filter((c) => c.chave);
+    for (const c of lojas) {
+      const partes = c.chave.split(/\s+/), junto = partes.join('');
+      for (let n = partes.length; n <= Math.max(3, partes.length) && !r.loja; n++) {
+        for (let k = 0; k + n <= tk.length; k++) {
+          const g = tk.slice(k, k + n);
+          if (g.some((x) => x.usado)) continue;
+          const bate = n === partes.length ? partes.every((p, x) => parecido(g[x].t, p)) : parecido(g.map((x) => x.t).join(''), junto);
+          if (!bate) continue;
+          const comLoja = T(k - 1) === 'loja';
+          if (!(temCarne || r.parcelas > 1 || comLoja)) continue; // só o nome da loja não basta: pode ter sido pago de outro jeito
+          r.loja = c.nome; usa(comLoja ? k - 1 : k, k + n); break;
+        }
+      }
+      if (r.loja) break;
+    }
+  }
+  if (r.loja || temCarne) r.forma = 'crediario';
 
   // ---- forma de pagamento ----
   for (let k = 0; k < tk.length; k++) {

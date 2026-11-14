@@ -70,9 +70,13 @@ DIA A DIA
 - O app mostra o que entendeu; corrija o que precisar e toque em Salvar.
 - Toque em qualquer lançamento para editar ou apagar.
 - Funciona sem internet; sincroniza quando a conexão volta.
-- Cartões de outras pessoas: cadastre em Ajustes ("Pai dia 10, Mãe dia 5")
-  e diga "no cartão da mãe". O quadro "Devo a outras pessoas" mostra o que
-  pagar a cada um no mês, com o botão "Marcar pago".
+- Meus cartões: em Ajustes, informe o limite e o dia do vencimento de cada
+  um. O quadro "Meus cartões" mostra a fatura do mês e o limite disponível;
+  o limite volta quando você toca em "Marcar fatura paga".
+- Cartões de outras pessoas: cadastre em Ajustes e diga "no cartão da mãe".
+- Lojas (carnê ou crediário): cadastre em Ajustes e diga "no carnê da Zenir".
+- Os quadros da tela inicial mostram o que pagar a cada pessoa ou loja no
+  mês, com o botão "Marcar pago".
 - Compra que já está sendo paga: informe o total de parcelas e preencha
   "Começar na parcela" (ex.: 4 de 10) para lançar só as que faltam.
 - Em Ajustes: seus cartões, exportar planilha (CSV) e cópia de segurança.

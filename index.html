@@ -113,6 +113,26 @@ dialog h3{margin:0 0 4px;font-size:18px}
 .marca{display:flex;align-items:center;gap:10px;margin-top:14px;font-size:15px}
 .marca input{width:22px;height:22px;accent-color:var(--brand)}
 .cada{padding:12px 2px;font-weight:600;font-variant-numeric:tabular-nums}
+.deve-b{border-bottom:1px solid var(--line)}
+.deve-b:last-child{border-bottom:0}
+.deve-b .deve{border-bottom:0}
+.lim{padding:0 0 12px}
+.lim i{display:block;height:8px;border-radius:4px;background:var(--brand-soft);overflow:hidden}
+.lim i u{display:block;height:100%;background:var(--brand);border-radius:4px}
+.lim.est i u{background:var(--neg)}
+.lim span{display:block;font-size:13px;color:var(--muted);margin-top:5px}
+.lim span b{color:var(--ink);font-weight:600}
+.lim span b.neg{color:var(--neg)}
+.medidor{height:14px;border-radius:7px;background:var(--brand-soft);overflow:hidden;margin-top:14px}
+.medidor u{display:block;height:100%;background:var(--brand);border-radius:7px}
+.medidor.est u{background:var(--neg)}
+.item .t span.prox{color:var(--ink);font-weight:500}
+.ed-l{display:grid;gap:6px;align-items:center;margin-bottom:6px}
+.ed2 .ed-l{grid-template-columns:1fr 64px 40px}
+.ed3 .ed-l{grid-template-columns:1fr 104px 56px 40px}
+.ed-cab{font-size:12px;color:var(--muted);margin-bottom:2px}
+.ed-l input{width:100%;min-width:0;padding:10px 8px;border-radius:10px;border:1px solid var(--line);background:var(--bg)}
+.ed-l button{height:40px;border-radius:10px;border:1px solid var(--line);background:none;color:var(--neg);font-size:20px;line-height:1}
 #toast{position:fixed;left:50%;bottom:calc(92px + env(safe-area-inset-bottom));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 14px;border-radius:12px;font-size:14px;display:flex;gap:14px;align-items:center;max-width:92%;z-index:20}
 #toast button{background:none;border:0;color:inherit;font-weight:700;text-decoration:underline;padding:0}
 #login{max-width:400px;margin:0 auto;padding:60px 20px}
@@ -184,15 +204,16 @@ dialog h3{margin:0 0 4px;font-size:18px}
       <div class="chips" id="fFormas" role="radiogroup" aria-label="Forma de pagamento"></div>
     </div>
     <div class="duas">
-      <div class="campo" id="cCartao"><label for="fCartao">Cartão</label><select id="fCartao"></select></div>
+      <div class="campo" id="cCartao"><label for="fCartao" id="lCartao">Cartão</label><select id="fCartao"></select></div>
       <div class="campo" id="cParc"><label for="fParc">Parcelas</label><input id="fParc" type="number" inputmode="numeric" min="1" max="72" value="1"></div>
     </div>
     <div class="duas" id="cParc2">
       <div class="campo"><label for="fParcIni">Começar na parcela</label><input id="fParcIni" type="number" inputmode="numeric" min="1" max="72" value="1"></div>
       <div class="campo"><span class="rot">Valor de cada parcela</span><div class="cada" id="fCada">—</div></div>
     </div>
-    <label class="marca" id="cPago"><input type="checkbox" id="fPago"> Esta parcela já foi paga</label>
+    <label class="marca" id="cPago"><input type="checkbox" id="fPago"> Já foi paga</label>
     <div class="campo"><label for="fQuem">Quem</label><select id="fQuem"></select></div>
+    <div class="erro" id="fErro" role="alert"></div>
     <div class="acoes">
       <button class="btn sec" type="button" id="fCancelar">Cancelar</button>
       <button class="btn" type="submit" id="fSalvar">Salvar</button>
